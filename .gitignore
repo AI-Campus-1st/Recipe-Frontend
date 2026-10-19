@@ -1,0 +1,31 @@
+node_modules
+.next
+out
+build
+*.tsbuildinfo
+next-env.d.ts
+.env*.local
+playwright-report
+test-results
+coverage
+
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+
+# deps / build
+dist/
+target/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude local settings
+.claude/settings.local.json
