@@ -195,8 +195,6 @@ export const SUPPORTED_HOSTS = [
   "youtube.com",
   "youtu.be",
   "10000recipe.com",
-  "blog.naver.com",
-  "m.blog.naver.com",
   "instagram.com",
 ];
 
