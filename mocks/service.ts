@@ -159,11 +159,12 @@ function plannedOutcome(url: string, attempts: number): "needs_review" | "failed
 }
 
 const MANGAE_RECIPE_URL = /^https?:\/\/(?:www\.|m\.)?10000recipe\.com\/recipe\/(\d+)\/?(?:[?#].*)?$/;
+const INSTAGRAM_POST_PATH = /^\/(?:[\w.]+\/)?(?:reels?|p|tv)\/([A-Za-z0-9_-]{5,40})\/?$/;
 const TRACKING_PARAM = /^(utm_.+|fbclid|gclid|si)$/;
 
 /**
- * Duplicate key of a recipe source: YouTube video ID, 만개의레시피 recipe ID, or a normalized URL.
- * Returns null for YouTube/만개의레시피 URLs that carry no ID (not a recipe page).
+ * Duplicate key of a recipe source: YouTube video ID, 만개의레시피 recipe ID, Instagram post code, or a normalized URL.
+ * Returns null for YouTube/만개의레시피/Instagram URLs that carry no ID (not a recipe page).
  */
 export function sourceKey(url: string): string | null {
   let parsed: URL;
@@ -184,6 +185,10 @@ export function sourceKey(url: string): string | null {
   if (host === "10000recipe.com") {
     const match = url.match(MANGAE_RECIPE_URL);
     return match ? `10000recipe:${match[1]}` : null;
+  }
+  if (host === "instagram.com") {
+    const code = parsed.pathname.match(INSTAGRAM_POST_PATH)?.[1];
+    return code ? `instagram:${code}` : null;
   }
   for (const key of [...parsed.searchParams.keys()]) if (TRACKING_PARAM.test(key)) parsed.searchParams.delete(key);
   return `web:${host}${parsed.pathname.replace(/\/+$/, "")}${parsed.search}`;
@@ -218,7 +223,7 @@ export function importRecipe({ url, title }: ImportRecipeRequest): { recipe: Rec
     throw new MockHttpError(422, {
       code: "validation_error",
       message: "레시피 페이지 주소를 입력해 주세요.",
-      fieldErrors: { url: "유튜브 영상 또는 만개의레시피 레시피 페이지 주소를 입력해 주세요." },
+      fieldErrors: { url: "유튜브 영상, 만개의레시피 레시피 페이지 또는 인스타그램 릴스 주소를 입력해 주세요." },
     });
   }
   const db = getDb();

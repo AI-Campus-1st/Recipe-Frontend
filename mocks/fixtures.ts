@@ -191,7 +191,14 @@ export const REVISED_INGREDIENTS: Array<Omit<RecipeIngredient, "id" | "ingredien
   ing("대파", 0.5, "대"),
 ];
 
-export const SUPPORTED_HOSTS = ["youtube.com", "youtu.be", "10000recipe.com", "blog.naver.com", "m.blog.naver.com"];
+export const SUPPORTED_HOSTS = [
+  "youtube.com",
+  "youtu.be",
+  "10000recipe.com",
+  "blog.naver.com",
+  "m.blog.naver.com",
+  "instagram.com",
+];
 
 export interface SubstituteRule {
   name: string;

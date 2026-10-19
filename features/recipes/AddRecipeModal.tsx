@@ -113,7 +113,7 @@ export function AddRecipeModal({ open, onClose }: AddRecipeModalProps) {
             if (urlError) setUrlError(null);
           }}
           error={urlError}
-          hint="유튜브, 만개의 레시피, 네이버 블로그 주소를 지원해요."
+          hint={`${SUPPORTED_SOURCES.join(", ")} 주소를 지원해요.`}
           labelAddon={
             <Tooltip label="수집 가능한 출처">
               <span className="block font-semibold">수집 가능한 출처</span>
