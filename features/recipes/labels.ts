@@ -25,7 +25,7 @@ export const FIELD_LABELS: Record<string, string> = {
 };
 
 /** Sources the extractor supports (Tooltip content). */
-export const SUPPORTED_SOURCES = ["유튜브", "만개의 레시피", "네이버 블로그"];
+export const SUPPORTED_SOURCES = ["유튜브", "만개의 레시피", "인스타그램"];
 
 export function validateRecipeUrl(value: string): string | null {
   const trimmed = value.trim();

@@ -193,6 +193,20 @@ describe("recipe import (F-01)", () => {
     expect(() => api.importRecipe({ url: "javascript:alert(1)" })).toThrowError(/URL/);
     expect(() => api.importRecipe({ url: "https://www.youtube.com/feed/trending" })).toThrowError(/레시피 페이지/);
     expect(() => api.importRecipe({ url: "https://www.10000recipe.com/recipe/list.html" })).toThrowError(/레시피 페이지/);
+    expect(() => api.importRecipe({ url: "https://www.instagram.com/cook.daily/" })).toThrowError(/레시피 페이지/);
+    expect(() => api.importRecipe({ url: "https://www.instagram.com/stories/cook.daily/1/" })).toThrowError(/레시피 페이지/);
+  });
+
+  it("imports an Instagram reel and detects other URL forms of the same post as duplicates", () => {
+    const { recipe } = api.importRecipe({ url: "https://www.instagram.com/reel/DeoNEDwBZsZ/?utm_source=ig_web_copy_link&igsh=abc" });
+    expect(recipe.status).toBe("importing");
+    for (const url of [
+      "https://instagram.com/p/DeoNEDwBZsZ",
+      "https://m.instagram.com/reels/DeoNEDwBZsZ/",
+      "https://www.instagram.com/cook.daily/reel/DeoNEDwBZsZ/",
+    ]) {
+      expect(() => api.importRecipe({ url })).toThrowError(/이미 저장된/);
+    }
   });
 
   it("detects duplicates by video ID, recipe ID or normalized URL", () => {

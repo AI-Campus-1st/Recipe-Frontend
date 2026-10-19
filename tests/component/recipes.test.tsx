@@ -45,7 +45,7 @@ describe("AddRecipeModal", () => {
     const user = userEvent.setup();
     renderWithProviders(<AddRecipeModal open onClose={() => {}} />);
     await user.click(screen.getByRole("button", { name: "수집 가능한 출처" }));
-    expect(screen.getByRole("tooltip")).toHaveTextContent("유튜브 · 만개의 레시피 · 네이버 블로그");
+    expect(screen.getByRole("tooltip")).toHaveTextContent("유튜브 · 만개의 레시피 · 인스타그램");
   });
 });
 

@@ -80,7 +80,7 @@ export interface RecipeSummary {
 }
 
 /**
- * The same source (YouTube video ID, 만개의레시피 recipe ID or normalized URL) is never saved twice:
+ * The same source (YouTube video ID, 만개의레시피 recipe ID, Instagram post code or normalized URL) is never saved twice:
  * a duplicate returns 409 `duplicate_recipe`; a soft-deleted one is restored (200 instead of 202).
  */
 export interface ImportRecipeRequest {
