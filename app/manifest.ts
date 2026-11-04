@@ -14,9 +14,9 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#ffffff",
     theme_color: "#ffffff",
     icons: [
-      { src: "/icons/yoridam-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icons/yoridam-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icons/yoridam-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icons/yoridam-v2-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icons/yoridam-v2-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/yoridam-v2-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

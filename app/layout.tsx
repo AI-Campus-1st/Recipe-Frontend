@@ -12,10 +12,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "요리담", statusBarStyle: "default" },
   icons: {
     icon: [
-      { url: "/icons/yoridam-favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/yoridam-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/yoridam-v2-favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/yoridam-v2-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/icons/yoridam-apple-touch-icon.png",
+    apple: "/icons/yoridam-v2-apple-touch-icon.png",
   },
 };
 
