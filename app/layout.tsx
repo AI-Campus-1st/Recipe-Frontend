@@ -6,16 +6,16 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "주간 식단",
+  title: "요리담",
   description: "저장한 레시피로 주간 식단과 장보기를 계획합니다.",
-  applicationName: "주간 식단",
-  appleWebApp: { capable: true, title: "주간 식단", statusBarStyle: "default" },
+  applicationName: "요리담",
+  appleWebApp: { capable: true, title: "요리담", statusBarStyle: "default" },
   icons: {
     icon: [
-      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/yoridam-favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/yoridam-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/icons/apple-touch-icon.png",
+    apple: "/icons/yoridam-apple-touch-icon.png",
   },
 };
 

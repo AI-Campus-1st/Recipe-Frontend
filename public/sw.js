@@ -1,10 +1,10 @@
 // App service worker: makes the app installable and keeps the shell usable on flaky networks.
 // API calls (FastAPI backend, cross-origin) are never cached — data always comes from the server.
-const VERSION = "v1";
+const VERSION = "v2-yoridam";
 const STATIC_CACHE = `static-${VERSION}`;
 const PAGE_CACHE = `pages-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
-const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
+const PRECACHE = [OFFLINE_URL, "/icons/yoridam-192.png", "/icons/yoridam-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE)));
