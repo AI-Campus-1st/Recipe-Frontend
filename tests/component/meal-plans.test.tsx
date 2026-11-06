@@ -74,24 +74,15 @@ describe("GenerateMealPlanModal", () => {
 });
 
 describe("WeeklyScreen", () => {
-  it("shows every day of the week and changes one meal", async () => {
-    const user = userEvent.setup();
+  it("shows every day of the week with weekly and day meal actions", async () => {
     renderWithProviders(<WeeklyScreen />);
     const list = await screen.findByRole("list", { name: "날짜별 식단" });
     expect(screen.getByRole("banner")).toHaveTextContent(/^주간 식단$/);
     expect(screen.queryByRole("button", { name: "다음 주" })).not.toBeInTheDocument();
     expect(within(list).getAllByRole("listitem").length).toBeGreaterThanOrEqual(7);
     expect(screen.getByText("전체 생성 완료")).toBeInTheDocument();
-
-    const monday = formatDateWithWeekday(startOfWeek(todayISO()));
-    await user.click(screen.getByRole("button", { name: new RegExp(monday.replace(/[()]/g, "\\$&")) }));
-    await user.click(screen.getByRole("button", { name: "식단 변경" }));
-    const dialog = screen.getByRole("dialog", { name: "식단 변경" });
-    expect(within(dialog).getByText("제육볶음")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "변경 요청" }));
-
-    expect(await screen.findByText(/식단을 .+\(으\)로 변경했어요/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "주간 식단 생성" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "하루 식단 생성" })).toBeInTheDocument();
   });
 
   it("shows an empty state with a generation CTA for a week without meals", async () => {
@@ -105,5 +96,6 @@ describe("WeeklyScreen", () => {
     await user.click(await screen.findByRole("button", { name: new RegExp(`${m}월 ${d}일부터`) }));
     expect(await screen.findByText("이번 주 식단이 없어요")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "주간 식단 생성" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "하루 식단 생성" })).toBeInTheDocument();
   });
 });

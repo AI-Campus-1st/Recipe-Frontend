@@ -7,6 +7,7 @@ import type {
   RecipeCreateRequest,
   RegenerateMealRequest,
   RevisionRequest,
+  SetDayMealRequest,
   SideDishRecommendationRequest,
 } from "@/lib/api/contracts";
 import { API_BASE_URL } from "@/lib/api/client";
@@ -118,6 +119,22 @@ export const handlers = [
     route(({ params }) => HttpResponse.json(api.completeMeal(String(params.id)))),
   ),
   http.get(url("/meals/today"), route(() => HttpResponse.json(api.getTodayMeal()))),
+  /* MEAL-001: manual day meal and completion undo */
+  http.put(
+    url("/meal-plans/days/:date"),
+    route(async ({ params, request }) => HttpResponse.json(api.setDayMeal(String(params.date), await body<SetDayMealRequest>(request)))),
+  ),
+  http.delete(
+    url("/meal-plans/days/:date"),
+    route(({ params }) => {
+      api.clearDayMeal(String(params.date));
+      return new HttpResponse(null, { status: 204 });
+    }),
+  ),
+  http.delete(
+    url("/meal-plans/entries/:id/complete"),
+    route(({ params }) => HttpResponse.json(api.uncompleteMeal(String(params.id)))),
+  ),
   http.put(
     url("/cooking-logs/:id/review"),
     route(async ({ params, request }) => {

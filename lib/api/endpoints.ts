@@ -15,6 +15,7 @@ import type {
   RecipeCategory,
   RecipeCreateRequest,
   RecipeSummary,
+  SetDayMealRequest,
   ShoppingList,
   SideDishRecommendationRequest,
   SideDishRecommendationResponse,
@@ -60,14 +61,18 @@ export const mealPlansApi = {
   month: (month: string) => apiRequest<MonthSummary>(`/meal-plans/months/${enc(month)}`),
   generate: (body: GenerateMealPlanRequest) =>
     apiRequest<GenerateMealPlanResponse>("/meal-plans/generate", { method: "POST", body }),
-  regenerate: (entryId: string, comment?: string) =>
-    apiRequest<MealPlanEntry>(`/meal-plans/entries/${enc(entryId)}/regenerate`, { method: "POST", body: { comment } }),
   detail: (entryId: string) => apiRequest<MealDetail>(`/meal-plans/entries/${enc(entryId)}`),
   complete: (entryId: string) =>
     apiRequest<CompleteMealResponse>(`/meal-plans/entries/${enc(entryId)}/complete`, { method: "POST" }),
   today: () => apiRequest<TodayMealResponse>("/meals/today"),
   review: (logId: string, body: CookingReviewRequest) =>
     apiRequest<CookingLogSummary>(`/cooking-logs/${enc(logId)}/review`, { method: "PUT", body }),
+  /* MEAL-001: manual day meal and completion undo */
+  setDay: (date: ISODate, body: SetDayMealRequest) =>
+    apiRequest<MealPlanEntry>(`/meal-plans/days/${enc(date)}`, { method: "PUT", body }),
+  clearDay: (date: ISODate) => apiRequest<void>(`/meal-plans/days/${enc(date)}`, { method: "DELETE" }),
+  uncomplete: (entryId: string) =>
+    apiRequest<MealPlanEntry>(`/meal-plans/entries/${enc(entryId)}/complete`, { method: "DELETE" }),
 };
 
 export const shoppingApi = {

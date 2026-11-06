@@ -15,6 +15,7 @@ import type {
   RecipeCreateRequest,
   RecipeSummary,
   ScaledIngredient,
+  SetDayMealRequest,
   ShoppingItem,
   ShoppingList,
   SideDishRecommendationResponse,
@@ -581,6 +582,99 @@ export function regenerateMeal(entryId: string, comment: string | undefined): Me
   db.substitutions = db.substitutions.filter((s) => s.entryId !== entry.id);
   syncChecked(weekStart);
   persist();
+  return toEntry(entry);
+}
+
+/* ---------- MEAL-001: manual day meal, clear, completion undo ---------- */
+
+/** Manual meals are saved without a practical cooking-time limit (API_SPEC 4.8). */
+export const MANUAL_COOK_MINUTES_LIMIT = 360;
+const PAST_DATE_MESSAGE = "지난 날짜의 식단은 변경할 수 없습니다.";
+const COMPLETED_MESSAGE = "완료된 식단입니다. 완료를 취소한 뒤 수정하거나 삭제해 주세요.";
+const RECIPE_UNAVAILABLE_MESSAGE = "저장된 레시피만 선택할 수 있습니다.";
+
+function assertNotPast(date: string): void {
+  if (date < todayISO()) throw new MockHttpError(409, { code: "conflict", message: PAST_DATE_MESSAGE });
+}
+
+function assertISODate(date: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new MockHttpError(422, { code: "validation_error", message: "날짜 형식이 올바르지 않습니다." });
+  }
+}
+
+function invalidRecipe(field: "mainRecipeId" | "sideRecipeIds", message = RECIPE_UNAVAILABLE_MESSAGE): MockHttpError {
+  return new MockHttpError(422, { code: "validation_error", message, fieldErrors: { [field]: message } });
+}
+
+/** Creates or replaces one date's meal with exactly the requested recipes; any category is allowed. */
+export function setDayMeal(date: string, request: Partial<SetDayMealRequest>): MealPlanEntry {
+  assertISODate(date);
+  const { mainRecipeId, sideRecipeIds, servings } = request;
+  if (typeof servings !== "number" || !Number.isInteger(servings) || servings < 1 || servings > 20) {
+    throw new MockHttpError(422, { code: "validation_error", message: "인분은 1~20 사이의 정수여야 합니다.", fieldErrors: { servings: "인분은 1~20 사이의 정수여야 합니다." } });
+  }
+  if (!Array.isArray(sideRecipeIds)) {
+    throw new MockHttpError(422, { code: "validation_error", message: "곁들임 목록이 필요합니다.", fieldErrors: { sideRecipeIds: "곁들임 목록이 필요합니다." } });
+  }
+  assertNotPast(date);
+  const sideIds = [...new Set(sideRecipeIds.map(String))];
+  if (typeof mainRecipeId !== "string" || !isSavedActive(findRecipe(mainRecipeId))) throw invalidRecipe("mainRecipeId");
+  if (sideIds.includes(mainRecipeId)) throw invalidRecipe("sideRecipeIds", "주 레시피를 곁들임으로 함께 선택할 수 없습니다.");
+  if (sideIds.some((id) => !isSavedActive(findRecipe(id)))) throw invalidRecipe("sideRecipeIds");
+  const weekStart = startOfWeek(date);
+  assertNotGenerating(weekStart);
+  const db = getDb();
+  const existing = db.entries.find((entry) => entry.date === date);
+  if (existing?.completedAt) throw new MockHttpError(409, { code: "conflict", message: COMPLETED_MESSAGE });
+  const entry: DbEntry = {
+    id: existing?.id ?? nextId("m"),
+    date,
+    mainRecipeId,
+    sideRecipeIds: sideIds,
+    servings,
+    cookMinutesLimit: MANUAL_COOK_MINUTES_LIMIT,
+    completedAt: null,
+    cookingLogId: null,
+  };
+  if (existing) {
+    db.substitutions = db.substitutions.filter((s) => s.entryId !== existing.id);
+    db.entries = db.entries.map((e) => (e.id === existing.id ? entry : e));
+  } else {
+    db.entries.push(entry);
+  }
+  syncChecked(weekStart);
+  persist();
+  return toEntry(entry);
+}
+
+/** Idempotent: a date without a meal is fine. Past dates are rejected whether or not they have a meal. */
+export function clearDayMeal(date: string): void {
+  assertISODate(date);
+  assertNotPast(date);
+  const weekStart = startOfWeek(date);
+  assertNotGenerating(weekStart);
+  const existing = getDb().entries.find((entry) => entry.date === date);
+  if (!existing) return;
+  if (existing.completedAt) throw new MockHttpError(409, { code: "conflict", message: COMPLETED_MESSAGE });
+  removeEntryOn(date);
+  syncChecked(weekStart);
+  persist();
+}
+
+/** Idempotent. Deletes the meal's current cooking logs (ratings and memos too); older regenerate history stays. */
+export function uncompleteMeal(entryId: string): MealPlanEntry {
+  const db = getDb();
+  const entry = db.entries.find((e) => e.id === entryId);
+  if (!entry) throw notFound("식단");
+  assertNotPast(entry.date);
+  if (entry.completedAt) {
+    const completedAt = entry.completedAt;
+    db.logs = db.logs.filter((log) => !(log.entryId === entry.id && log.completedAt === completedAt));
+    entry.completedAt = null;
+    entry.cookingLogId = null;
+    persist();
+  }
   return toEntry(entry);
 }
 

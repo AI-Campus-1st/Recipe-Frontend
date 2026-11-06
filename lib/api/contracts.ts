@@ -167,6 +167,15 @@ export interface RegenerateMealRequest {
   comment?: string;
 }
 
+/* MEAL-001: manual day meal (`PUT /meal-plans/days/{date}`) */
+export interface SetDayMealRequest {
+  mainRecipeId: string;
+  /** Saved exactly as sent (empty array allowed); linked sides are not added by the server. */
+  sideRecipeIds: string[];
+  /** Integer 1–20. */
+  servings: number;
+}
+
 export interface MonthWeekSummary {
   weekStart: ISODate;
   weekEnd: ISODate;
