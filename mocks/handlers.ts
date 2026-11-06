@@ -4,6 +4,7 @@ import type {
   CookingReviewRequest,
   GenerateMealPlanRequest,
   ImportRecipeRequest,
+  RecipeCreateRequest,
   RegenerateMealRequest,
   RevisionRequest,
   SideDishRecommendationRequest,
@@ -48,6 +49,11 @@ export const handlers = [
   http.get(
     url("/recipes"),
     route(({ request }) => HttpResponse.json(api.listRecipes(new URL(request.url).searchParams.get("category")))),
+  ),
+  /* RECIPE-001: manual input */
+  http.post(
+    url("/recipes"),
+    route(async ({ request }) => HttpResponse.json(api.createRecipe(await body<RecipeCreateRequest>(request)), { status: 201 })),
   ),
   http.post(
     url("/recipes/import"),
@@ -147,4 +153,7 @@ export const handlers = [
       ),
     ),
   ),
+
+  /* Units (RECIPE-001) */
+  http.get(url("/units"), route(() => HttpResponse.json(api.listUnits()))),
 ];

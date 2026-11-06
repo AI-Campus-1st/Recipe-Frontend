@@ -1,4 +1,4 @@
-import type { RecipeCategory, RecipeIngredient, RecipeStatus } from "@/lib/api/contracts";
+import type { RecipeCategory, RecipeIngredient, RecipeStatus, Unit } from "@/lib/api/contracts";
 import { addDays, defaultCookMinutes, startOfWeek, todayISO, weekDates } from "@/lib/date";
 import { normalizeIngredientName } from "@/services/shopping";
 import { SAVED_RECIPES } from "./fixtures";
@@ -7,7 +7,8 @@ import { SAVED_RECIPES } from "./fixtures";
 
 export interface DbRecipe {
   id: string;
-  sourceUrl: string;
+  /** `null` for a manual recipe without a reference link (RECIPE-001). */
+  sourceUrl: string | null;
   title: string | null;
   imageUrl: string | null;
   status: RecipeStatus;
@@ -321,3 +322,30 @@ export function applyScenarioFromUrl(): void {
   }
   if (scenario === "empty" || scenario === "default") resetDb(createSeed({ empty: scenario === "empty" }));
 }
+
+/* ---------- Units (RECIPE-001, `GET /units`) ---------- */
+
+/** Mirrors the backend seed: dimension order mass → volume → count → unmeasured. Read-only in the mock. */
+export const UNITS: Unit[] = [
+  { code: "g", label: "g", dimension: "mass" },
+  { code: "kg", label: "kg", dimension: "mass" },
+  { code: "L", label: "L", dimension: "volume" },
+  { code: "ml", label: "ml", dimension: "volume" },
+  { code: "tsp", label: "작은술", dimension: "volume" },
+  { code: "cup", label: "컵", dimension: "volume" },
+  { code: "tbsp", label: "큰술", dimension: "volume" },
+  { code: "ea", label: "개", dimension: "count" },
+  { code: "bowl", label: "공기", dimension: "count" },
+  { code: "bunch", label: "단", dimension: "count" },
+  { code: "stalk", label: "대", dimension: "count" },
+  { code: "block", label: "모", dimension: "count" },
+  { code: "pack", label: "봉지", dimension: "count" },
+  { code: "sheet", label: "장", dimension: "count" },
+  { code: "piece", label: "조각", dimension: "count" },
+  { code: "handful", label: "줌", dimension: "count" },
+  { code: "clove", label: "쪽", dimension: "count" },
+  { code: "can", label: "캔", dimension: "count" },
+  { code: "head", label: "통", dimension: "count" },
+  { code: "pinch", label: "약간", dimension: "unmeasured" },
+  { code: "to_taste", label: "적당량", dimension: "unmeasured" },
+];

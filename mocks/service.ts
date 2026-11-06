@@ -12,6 +12,7 @@ import type {
   MealPlanEntry,
   MonthSummary,
   Recipe,
+  RecipeCreateRequest,
   RecipeSummary,
   ScaledIngredient,
   ShoppingItem,
@@ -20,13 +21,14 @@ import type {
   SubstituteCandidate,
   SubstituteOptions,
   TodayMealResponse,
+  Unit,
   WeeklyMealPlan,
 } from "@/lib/api/contracts";
-import { RATING_MAX, RATING_MIN } from "@/lib/api/contracts";
+import { RATING_MAX, RATING_MIN, RECIPE_CATEGORIES } from "@/lib/api/contracts";
 import { addDays, monthOf, startOfWeek, todayISO, weeksOfMonth } from "@/lib/date";
 import { scaleQuantity } from "@/services/scaling";
 import { aggregateShoppingItems, carryOverChecked, normalizeIngredientName, type ShoppingSourceInput } from "@/services/shopping";
-import { ensureIngredient, getDb, linkIngredients, nextId, persist, type DbEntry, type DbRecipe } from "./db";
+import { ensureIngredient, getDb, linkIngredients, nextId, persist, UNITS, type DbEntry, type DbRecipe } from "./db";
 import { EXTRACTION_TEMPLATES, REVISED_INGREDIENTS, SUBSTITUTE_RULES, SUPPORTED_HOSTS } from "./fixtures";
 
 export class MockHttpError extends Error {
@@ -227,7 +229,7 @@ export function importRecipe({ url, title }: ImportRecipeRequest): { recipe: Rec
     });
   }
   const db = getDb();
-  const sameSource = db.recipes.filter((r) => sourceKey(r.sourceUrl) === key);
+  const sameSource = db.recipes.filter((r) => r.sourceUrl !== null && sourceKey(r.sourceUrl) === key);
   const active = sameSource.find((r) => !r.isDelete);
   const deleted = sameSource.filter((r) => r.isDelete);
   // Soft-deleted recipes of the same source are restored as they were, without a new import job.
@@ -283,7 +285,7 @@ export function retryRecipe(id: string): Recipe {
   }
   recipe.attempts += 1;
   recipe.status = "importing";
-  recipe.job = { readyAt: Date.now() + IMPORT_DURATION_MS, outcome: plannedOutcome(recipe.sourceUrl, recipe.attempts), revised: false };
+  recipe.job = { readyAt: Date.now() + IMPORT_DURATION_MS, outcome: plannedOutcome(recipe.sourceUrl ?? "", recipe.attempts), revised: false };
   persist();
   return toRecipe(recipe);
 }
@@ -605,7 +607,7 @@ function cookingView(entry: DbEntry, recipeId: string): CookingRecipeView {
     ingredients,
     substituteNotes: subs.filter((s) => s.cookingNote).map((s) => `${s.originalName} → ${s.name}: ${s.cookingNote}`),
     previousLogs: logsForRecipe(recipeId),
-    sourceUrl: recipe?.sourceUrl ?? "",
+    sourceUrl: recipe?.sourceUrl ?? null,
     cookingLogId: currentLogId(entry, recipeId),
   };
 }
@@ -834,4 +836,98 @@ export function applySubstitute(weekStartInput: string, itemId: string, request:
 
 export function currentMonth(): string {
   return monthOf(todayISO());
+}
+
+/* ---------- Manual recipe input & units (RECIPE-001, §2.8, §2.10) ---------- */
+
+export function listUnits(): Unit[] {
+  return UNITS;
+}
+
+/** Leading number of a raw amount: `2`, `1.5`, `1/2`, `1 1/2`; a range `2~3` takes the larger value. */
+function parseLeadingNumber(text: string): { value: number; rest: string } | null {
+  const range = text.match(/^(\d+(?:\.\d+)?)\s*[~-]\s*(\d+(?:\.\d+)?)/);
+  if (range) return { value: Math.max(Number(range[1]), Number(range[2])), rest: text.slice(range[0].length) };
+  const mixed = text.match(/^(\d+)\s+(\d+)\/(\d+)/);
+  if (mixed) return { value: Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3]), rest: text.slice(mixed[0].length) };
+  const fraction = text.match(/^(\d+)\/(\d+)/);
+  if (fraction) return { value: Number(fraction[1]) / Number(fraction[2]), rest: text.slice(fraction[0].length) };
+  const plain = text.match(/^\d+(?:\.\d+)?/);
+  if (plain) return { value: Number(plain[0]), rest: text.slice(plain[0].length) };
+  return null;
+}
+
+/** Simplified `UNIT_CONVERSION.md` parsing: number + unit label; unmeasured labels have no quantity. */
+export function parseRawAmount(raw: string | undefined): { quantity: number | null; unit: string | null; parsed: boolean } {
+  const text = raw?.trim() ?? "";
+  if (!text) return { quantity: null, unit: null, parsed: true };
+  const unmeasured = UNITS.find((unit) => unit.dimension === "unmeasured" && unit.label === text);
+  if (unmeasured) return { quantity: null, unit: unmeasured.label, parsed: true };
+  const number = parseLeadingNumber(text);
+  if (!number) return { quantity: null, unit: null, parsed: false };
+  const rest = number.rest.trim();
+  if (!rest) return { quantity: number.value, unit: null, parsed: true };
+  const unit = UNITS.find((u) => u.label === rest || u.code.toLowerCase() === rest.toLowerCase());
+  return unit ? { quantity: number.value, unit: unit.label, parsed: true } : { quantity: null, unit: null, parsed: false };
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+/** `POST /recipes`: saved right away, no review step. */
+export function createRecipe(body: Partial<RecipeCreateRequest>): Recipe {
+  const fieldErrors: Record<string, string> = {};
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  if (!title) fieldErrors.title = "레시피명을 입력해 주세요.";
+  const ingredients = (Array.isArray(body.ingredients) ? body.ingredients : []).filter((i) => i?.name?.trim());
+  if (ingredients.length === 0) fieldErrors.ingredients = "재료를 1개 이상 입력해 주세요.";
+  if (body.category != null && !(RECIPE_CATEGORIES as readonly string[]).includes(body.category)) {
+    fieldErrors.category = "허용되지 않은 분류입니다.";
+  }
+  const sourceUrl = body.sourceUrl?.trim() || null;
+  if (sourceUrl && !isHttpUrl(sourceUrl)) fieldErrors.sourceUrl = "http 또는 https로 시작하는 URL을 입력해 주세요.";
+  const imageUrl = body.imageUrl?.trim() || null;
+  if (imageUrl && !isHttpUrl(imageUrl)) fieldErrors.imageUrl = "http 또는 https로 시작하는 URL을 입력해 주세요.";
+  if (Object.keys(fieldErrors).length > 0) {
+    throw new MockHttpError(422, { code: "validation_error", message: "입력값을 확인해 주세요.", fieldErrors });
+  }
+
+  const db = getDb();
+  const id = nextId("r");
+  const parsed = ingredients.map((ingredient) => ({ name: ingredient.name.trim(), ...parseRawAmount(ingredient.amount) }));
+  const uncertainFields: string[] = [];
+  if (body.baseServings == null) uncertainFields.push("baseServings");
+  if (body.cookMinutes == null) uncertainFields.push("cookMinutes");
+  if (parsed.some((p) => !p.parsed)) uncertainFields.push("ingredients");
+  const recipe: DbRecipe = {
+    id,
+    sourceUrl,
+    title,
+    imageUrl,
+    status: "saved",
+    category: body.category ?? null,
+    baseServings: body.baseServings ?? null,
+    cookMinutes: body.cookMinutes ?? null,
+    ingredients: linkIngredients(
+      db,
+      id,
+      parsed.map(({ name, quantity, unit }) => ({ name, quantity, unit })),
+    ),
+    steps: (body.steps ?? []).map((step) => step.trim()).filter(Boolean),
+    uncertainFields,
+    failureReason: null,
+    createdAt: new Date().toISOString(),
+    sideDishIds: [],
+    isDelete: false,
+    job: null,
+    attempts: 0,
+  };
+  db.recipes.push(recipe);
+  persist();
+  return toRecipe(recipe);
 }
