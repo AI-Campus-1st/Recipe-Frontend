@@ -57,8 +57,6 @@ export const mealPlansApi = {
   month: (month: string) => apiRequest<MonthSummary>(`/meal-plans/months/${enc(month)}`),
   generate: (body: GenerateMealPlanRequest) =>
     apiRequest<GenerateMealPlanResponse>("/meal-plans/generate", { method: "POST", body }),
-  regenerate: (entryId: string, comment?: string) =>
-    apiRequest<MealPlanEntry>(`/meal-plans/entries/${enc(entryId)}/regenerate`, { method: "POST", body: { comment } }),
   detail: (entryId: string) => apiRequest<MealDetail>(`/meal-plans/entries/${enc(entryId)}`),
   complete: (entryId: string) =>
     apiRequest<CompleteMealResponse>(`/meal-plans/entries/${enc(entryId)}/complete`, { method: "POST" }),

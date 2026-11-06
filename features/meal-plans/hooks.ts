@@ -1,7 +1,7 @@
 "use client";
 
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { mealPlansApi } from "@/lib/api/endpoints";
+import { mealPlansApi, sideDishesApi } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/queryKeys";
 import type { CookingReviewRequest, GenerateMealPlanRequest, ISODate, SetDayMealRequest } from "@/lib/api/contracts";
 
@@ -50,14 +50,6 @@ export function useIsGenerating() {
   return useIsMutating({ mutationKey: GENERATE_MUTATION_KEY }) > 0;
 }
 
-export function useRegenerateMeal() {
-  const invalidate = useInvalidatePlans();
-  return useMutation({
-    mutationFn: ({ entryId, comment }: { entryId: string; comment?: string }) => mealPlansApi.regenerate(entryId, comment),
-    onSuccess: invalidate,
-  });
-}
-
 /* ---------- MEAL-001: manual day meal ---------- */
 
 /** Creates or replaces one date's meal with exactly the checked recipes. */
@@ -72,6 +64,15 @@ export function useSetDayMeal() {
 export function useClearDayMeal() {
   const invalidate = useInvalidatePlans();
   return useMutation({ mutationFn: (date: ISODate) => mealPlansApi.clearDay(date), onSuccess: invalidate });
+}
+
+/** Linked sides of the chosen main recipe (auto-checked in the day meal modal). Idle without a recipe. */
+export function useLinkedSides(recipeId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.sideDishes(recipeId ?? ""),
+    queryFn: () => sideDishesApi.list(recipeId ?? ""),
+    enabled: recipeId !== null,
+  });
 }
 
 /** Undoes completion; the meal's current cooking logs (ratings and memos included) are deleted. */
