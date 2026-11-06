@@ -14,6 +14,7 @@ import type {
   Recipe,
   RecipeCategory,
   RecipeSummary,
+  SetDayMealRequest,
   ShoppingList,
   SideDishRecommendationRequest,
   SideDishRecommendationResponse,
@@ -64,6 +65,12 @@ export const mealPlansApi = {
   today: () => apiRequest<TodayMealResponse>("/meals/today"),
   review: (logId: string, body: CookingReviewRequest) =>
     apiRequest<CookingLogSummary>(`/cooking-logs/${enc(logId)}/review`, { method: "PUT", body }),
+  /* MEAL-001: manual day meal and completion undo */
+  setDay: (date: ISODate, body: SetDayMealRequest) =>
+    apiRequest<MealPlanEntry>(`/meal-plans/days/${enc(date)}`, { method: "PUT", body }),
+  clearDay: (date: ISODate) => apiRequest<void>(`/meal-plans/days/${enc(date)}`, { method: "DELETE" }),
+  uncomplete: (entryId: string) =>
+    apiRequest<MealPlanEntry>(`/meal-plans/entries/${enc(entryId)}/complete`, { method: "DELETE" }),
 };
 
 export const shoppingApi = {

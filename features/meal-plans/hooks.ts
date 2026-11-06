@@ -3,7 +3,7 @@
 import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mealPlansApi } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/queryKeys";
-import type { CookingReviewRequest, GenerateMealPlanRequest, ISODate } from "@/lib/api/contracts";
+import type { CookingReviewRequest, GenerateMealPlanRequest, ISODate, SetDayMealRequest } from "@/lib/api/contracts";
 
 export function useWeeklyPlan(weekStart: ISODate) {
   return useQuery({ queryKey: queryKeys.week(weekStart), queryFn: () => mealPlansApi.week(weekStart) });
@@ -21,7 +21,10 @@ export function useTodayMeal() {
   return useQuery({ queryKey: queryKeys.today, queryFn: () => mealPlansApi.today() });
 }
 
-/** Meal plan changes also change the shopping list, today's meal and cooking views. */
+/**
+ * Meal plan changes also change the shopping list, today's meal and cooking views.
+ * `mealPlansAll` covers every week (including the next week a day may fall into) and month summaries.
+ */
 function useInvalidatePlans() {
   const queryClient = useQueryClient();
   return () => {
@@ -53,6 +56,28 @@ export function useRegenerateMeal() {
     mutationFn: ({ entryId, comment }: { entryId: string; comment?: string }) => mealPlansApi.regenerate(entryId, comment),
     onSuccess: invalidate,
   });
+}
+
+/* ---------- MEAL-001: manual day meal ---------- */
+
+/** Creates or replaces one date's meal with exactly the checked recipes. */
+export function useSetDayMeal() {
+  const invalidate = useInvalidatePlans();
+  return useMutation({
+    mutationFn: ({ date, ...body }: SetDayMealRequest & { date: ISODate }) => mealPlansApi.setDay(date, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useClearDayMeal() {
+  const invalidate = useInvalidatePlans();
+  return useMutation({ mutationFn: (date: ISODate) => mealPlansApi.clearDay(date), onSuccess: invalidate });
+}
+
+/** Undoes completion; the meal's current cooking logs (ratings and memos included) are deleted. */
+export function useUncompleteMeal() {
+  const invalidate = useInvalidatePlans();
+  return useMutation({ mutationFn: (entryId: string) => mealPlansApi.uncomplete(entryId), onSuccess: invalidate });
 }
 
 export function useCompleteMeal() {

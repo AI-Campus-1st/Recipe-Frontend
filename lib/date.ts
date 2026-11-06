@@ -111,3 +111,8 @@ export function weeksOfMonth(month: string): ISODate[] {
   }
   return weeks;
 }
+
+/** `count` consecutive dates starting at `from` (default today), e.g. today ~ +6 days for the day meal modal. */
+export function upcomingDates(count = 7, from: ISODate = todayISO()): ISODate[] {
+  return Array.from({ length: count }, (_, i) => addDays(from, i));
+}
