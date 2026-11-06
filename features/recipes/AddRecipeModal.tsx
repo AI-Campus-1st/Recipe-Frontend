@@ -12,6 +12,7 @@ import type { DuplicateRecipeDetails } from "@/lib/api/contracts";
 import { recipeTitle } from "@/lib/format";
 import { useImportRecipe } from "./hooks";
 import { SUPPORTED_SOURCES, validateRecipeUrl } from "./labels";
+import { ManualRecipeModal } from "./ManualRecipeModal";
 
 interface AddRecipeModalProps {
   open: boolean;
@@ -28,6 +29,8 @@ export function AddRecipeModal({ open, onClose }: AddRecipeModalProps) {
   const [title, setTitle] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
   const [duplicate, setDuplicate] = useState<DuplicateRecipeDetails["existingRecipe"] | null>(null);
+  /** `직접 입력` swaps this URL modal for the manual input modal (RECIPE-001). */
+  const [mode, setMode] = useState<"url" | "manual">("url");
 
   const reset = () => {
     setUrl("");
@@ -40,6 +43,11 @@ export function AddRecipeModal({ open, onClose }: AddRecipeModalProps) {
   const close = () => {
     reset();
     onClose();
+  };
+
+  const switchToManual = () => {
+    reset();
+    setMode("manual");
   };
 
   const submit = () => {
@@ -81,74 +89,83 @@ export function AddRecipeModal({ open, onClose }: AddRecipeModalProps) {
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={close}
-      title="레시피 추가"
-      description="외부 레시피 URL을 입력하면 레시피 정보를 수집합니다."
-      busy={importRecipe.isPending}
-      footer={
-        <>
-          <Button variant="secondary" onClick={close} disabled={importRecipe.isPending}>
-            취소
-          </Button>
-          <Button type="submit" form={FORM_ID} loading={importRecipe.isPending}>
-            추가
-          </Button>
-        </>
-      }
-    >
-      <form id={FORM_ID} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <TextInput
-          label="레시피 URL"
-          required
-          type="url"
-          inputMode="url"
-          autoComplete="off"
-          placeholder="https://"
-          value={url}
-          onChange={(event) => {
-            setUrl(event.target.value);
-            setDuplicate(null);
-            if (urlError) setUrlError(null);
-          }}
-          error={urlError}
-          hint={`${SUPPORTED_SOURCES.join(", ")} 주소를 지원해요.`}
-          labelAddon={
-            <Tooltip label="수집 가능한 출처">
-              <span className="block font-semibold">수집 가능한 출처</span>
-              {SUPPORTED_SOURCES.join(" · ")}
-            </Tooltip>
-          }
-        />
-        <TextInput
-          label="레시피 이름"
-          placeholder="비워 두면 수집한 이름을 사용해요"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          maxLength={60}
-        />
-        {duplicate && (
-          <div role="status" className="rounded-md border border-hairline bg-surface-soft p-3">
-            <p className="text-body-md text-ink">
-              이미 저장된 레시피예요: <strong>{recipeTitle(duplicate.title)}</strong>
-            </p>
-            <p className="mt-1 text-caption text-muted">수집 결과를 바꾸려면 기존 레시피에서 수정을 요청해 주세요.</p>
-            <div className="mt-3 flex gap-2 [&>*]:flex-1">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  close();
-                  router.push(`/recipes?highlight=${encodeURIComponent(duplicate.id)}`);
-                }}
-              >
-                기존 레시피 보기
-              </Button>
+    <>
+      <Modal
+        open={open && mode === "url"}
+        onClose={close}
+        title="레시피 추가"
+        description="외부 레시피 URL을 입력하면 레시피 정보를 수집합니다."
+        busy={importRecipe.isPending}
+        footer={
+          <>
+            <Button variant="secondary" onClick={close} disabled={importRecipe.isPending}>
+              취소
+            </Button>
+            <Button type="submit" form={FORM_ID} loading={importRecipe.isPending}>
+              추가
+            </Button>
+          </>
+        }
+      >
+        <form id={FORM_ID} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+          <TextInput
+            label="레시피 URL"
+            required
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://"
+            value={url}
+            onChange={(event) => {
+              setUrl(event.target.value);
+              setDuplicate(null);
+              if (urlError) setUrlError(null);
+            }}
+            error={urlError}
+            hint={`${SUPPORTED_SOURCES.join(", ")} 주소를 지원해요.`}
+            labelAddon={
+              <Tooltip label="수집 가능한 출처">
+                <span className="block font-semibold">수집 가능한 출처</span>
+                {SUPPORTED_SOURCES.join(" · ")}
+              </Tooltip>
+            }
+          />
+          <TextInput
+            label="레시피 이름"
+            placeholder="비워 두면 수집한 이름을 사용해요"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            maxLength={60}
+          />
+          {duplicate && (
+            <div role="status" className="rounded-md border border-hairline bg-surface-soft p-3">
+              <p className="text-body-md text-ink">
+                이미 저장된 레시피예요: <strong>{recipeTitle(duplicate.title)}</strong>
+              </p>
+              <p className="mt-1 text-caption text-muted">수집 결과를 바꾸려면 기존 레시피에서 수정을 요청해 주세요.</p>
+              <div className="mt-3 flex gap-2 [&>*]:flex-1">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    close();
+                    router.push(`/recipes?highlight=${encodeURIComponent(duplicate.id)}`);
+                  }}
+                >
+                  기존 레시피 보기
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </form>
-    </Modal>
+          )}
+        </form>
+        <div className="mt-5 flex items-center gap-3 border-t border-hairline pt-4">
+          <p className="min-w-0 flex-1 text-body-md text-body">URL이 없다면 레시피를 직접 적어 저장할 수 있어요.</p>
+          <Button variant="secondary" size="sm" onClick={switchToManual} disabled={importRecipe.isPending}>
+            직접 입력
+          </Button>
+        </div>
+      </Modal>
+      <ManualRecipeModal open={open && mode === "manual"} onClose={onClose} onExited={() => setMode("url")} />
+    </>
   );
 }
