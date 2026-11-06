@@ -41,7 +41,7 @@ test("add a recipe, confirm it, and see it saved", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "재료" })).toBeVisible();
 });
 
-test("generate a meal plan for next week, then change one day", async ({ page }) => {
+test("generate a meal plan for next week", async ({ page }) => {
   await freshStart(page, "/weekly");
   // The header has no week navigation; weeks are picked from the month week strip.
   await page.getByRole("list", { name: /주차$/ }).getByRole("button", { name: /식단 없음$/ }).first().click();
@@ -59,12 +59,75 @@ test("generate a meal plan for next week, then change one day", async ({ page })
   await expect(page.getByText("전체 생성 완료")).toBeVisible();
   const days = page.getByRole("list", { name: "날짜별 식단" }).getByRole("listitem");
   await expect(days.filter({ hasText: "식단 없음" })).toHaveCount(5);
+});
 
-  await days.first().getByRole("button").first().click();
-  await page.getByRole("button", { name: "식단 변경" }).click();
-  await page.getByRole("dialog", { name: "식단 변경" }).getByRole("button", { name: "변경 요청" }).click();
-  await expect(page.getByText(/식단을 .+\(으\)로 변경했어요/)).toBeVisible();
-  await expect(days.filter({ hasText: "식단 없음" })).toHaveCount(5);
+test("day meal: create with an unchecked linked side, edit, undo completion, delete; past days locked", async ({ page }) => {
+  // Friday 2026-11-06 so the seeded week has past, today and future days (Mon 제육볶음 is past, today 김치볶음밥).
+  await page.clock.setFixedTime(new Date("2026-11-06T10:00:00"));
+  await freshStart(page, "/weekly");
+  const days = page.getByRole("list", { name: "날짜별 식단" }).getByRole("listitem");
+  const monday = days.filter({ hasText: "11월 2일 (월)" });
+  const today = days.filter({ hasText: "11월 6일 (금)" });
+  // Idempotent: the card keeps its open state when it turns from empty to planned.
+  const expandToday = async () => {
+    const header = today.getByRole("button", { name: /11월 6일 \(금\)/ });
+    if ((await header.getAttribute("aria-expanded")) !== "true") await header.click();
+  };
+
+  // Past day: nothing can change.
+  await monday.getByRole("button", { name: /11월 2일 \(월\)/ }).click();
+  await expect(monday.getByRole("button", { name: "수정" })).toBeDisabled();
+  await expect(monday.getByRole("button", { name: "삭제" })).toBeDisabled();
+
+  // Delete today's meal.
+  await expandToday();
+  await today.getByRole("button", { name: "삭제" }).click();
+  await page.getByRole("dialog", { name: "식단 삭제" }).getByRole("button", { name: "삭제" }).click();
+  await expect(page.getByText("11월 6일 (금) 식단을 삭제했어요.")).toBeVisible();
+  await expect(today).toContainText("식단 없음");
+
+  // `하루 식단 생성`: 제육볶음 with one of its two linked sides unchecked.
+  await page.getByRole("button", { name: "하루 식단 생성" }).click();
+  const create = page.getByRole("dialog", { name: "하루 식단 생성" });
+  await create.getByRole("button", { name: /11월 6일 \(금\)/ }).click();
+  await create.getByRole("button", { name: "주 레시피 선택" }).click();
+  await page.getByRole("dialog", { name: "주 레시피 선택" }).getByRole("button", { name: /제육볶음/ }).click();
+  await expect(create.getByRole("checkbox", { name: /시금치나물/ })).toBeChecked();
+  await create.getByRole("checkbox", { name: /계란말이/ }).uncheck();
+  await create.getByRole("button", { name: "저장" }).click();
+  await expect(page.getByText("11월 6일 (금) 식단을 저장했어요.")).toBeVisible();
+  await expect(today).toContainText("제육볶음");
+  await expandToday();
+  await today.getByRole("button", { name: "곁들임 1개" }).click();
+  await expect(today.getByRole("link", { name: "시금치나물" })).toBeVisible();
+  await expect(today.getByRole("link", { name: "계란말이" })).toHaveCount(0);
+
+  // `수정`: replace the main recipe; the shopping list follows.
+  await today.getByRole("button", { name: "수정" }).click();
+  const edit = page.getByRole("dialog", { name: "식단 수정" });
+  await edit.getByRole("button", { name: "변경" }).click();
+  await page.getByRole("dialog", { name: "주 레시피 선택" }).getByRole("button", { name: /참치마요 덮밥/ }).click();
+  await edit.getByRole("button", { name: "저장" }).click();
+  await expect(page.getByText("11월 6일 (금) 식단을 저장했어요.")).toBeVisible();
+  await expect(today).toContainText("참치마요 덮밥");
+  await page.getByRole("link", { name: "장보기" }).click();
+  await expect(page.getByText("참치캔", { exact: true })).toBeVisible();
+
+  // Complete it from the cooking screen, then `완료 취소` unlocks `수정`.
+  await page.getByRole("link", { name: "주간 식단" }).click();
+  await today.getByRole("link").first().click();
+  await page.getByRole("button", { name: "요리 완료" }).click();
+  // Escape instead of `스킵`: the Next dev issues badge overlaps that button on this viewport.
+  await expect(page.getByRole("dialog", { name: "요리 평가" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "요리 평가" })).toHaveCount(0);
+  await page.getByRole("link", { name: "주간 식단" }).click();
+  await expandToday();
+  await expect(today.getByRole("button", { name: "수정" })).toBeDisabled();
+  await today.getByRole("button", { name: "완료 취소" }).click();
+  await page.getByRole("dialog", { name: "요리 완료 취소" }).getByRole("button", { name: "완료 취소" }).click();
+  await expect(page.getByText("11월 6일 (금) 식단의 요리 완료를 취소했어요.")).toBeVisible();
+  await expect(today.getByRole("button", { name: "수정" })).toBeEnabled();
 });
 
 test("prepare ingredients and apply a substitute on the shopping list", async ({ page }) => {
