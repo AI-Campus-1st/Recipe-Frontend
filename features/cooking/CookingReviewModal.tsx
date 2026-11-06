@@ -3,7 +3,7 @@
 import { Star } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/Button";
-import { Modal } from "@/components/Modal";
+import { Modal, useModalPresence, type ModalPresenceProps } from "@/components/Modal";
 import { TextInput } from "@/components/TextInput";
 import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/cn";
@@ -18,11 +18,27 @@ interface CookingReviewModalProps {
 }
 
 export function CookingReviewModal({ logId, recipeName, onClose }: CookingReviewModalProps) {
-  if (!logId) return null;
-  return <CookingReviewModalBody key={logId} logId={logId} recipeName={recipeName} onClose={onClose} />;
+  const presence = useModalPresence(logId);
+  if (!presence.value) return null;
+  return (
+    <CookingReviewModalBody
+      key={presence.value}
+      logId={presence.value}
+      recipeName={recipeName}
+      onClose={onClose}
+      open={presence.open}
+      onExited={presence.onExited}
+    />
+  );
 }
 
-function CookingReviewModalBody({ logId, recipeName, onClose }: { logId: string; recipeName: string; onClose: () => void }) {
+function CookingReviewModalBody({
+  logId,
+  recipeName,
+  onClose,
+  open,
+  onExited,
+}: { logId: string; recipeName: string; onClose: () => void } & ModalPresenceProps) {
   const toast = useToast();
   const review = useReviewCookingLog();
   const [rating, setRating] = useState<number | null>(null);
@@ -45,7 +61,8 @@ function CookingReviewModalBody({ logId, recipeName, onClose }: { logId: string;
 
   return (
     <Modal
-      open
+      open={open}
+      onExited={onExited}
       onClose={onClose}
       title="요리 평가"
       description={`${recipeName} 요리는 어떠셨나요? 평가를 남기려면 별점을 선택해 주세요.`}

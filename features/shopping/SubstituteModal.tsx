@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/Checkbox";
-import { Modal } from "@/components/Modal";
+import { Modal, useModalPresence, type ModalPresenceProps } from "@/components/Modal";
 import { ErrorState, LoadingState } from "@/components/States";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/components/Toast";
@@ -23,11 +23,27 @@ interface SubstituteModalProps {
 const targetKey = (t: Pick<SubstituteTarget, "entryId" | "recipeId">) => `${t.entryId}:${t.recipeId}`;
 
 export function SubstituteModal({ weekStart, item, onClose }: SubstituteModalProps) {
-  if (!item) return null;
-  return <SubstituteModalBody key={item.id} weekStart={weekStart} item={item} onClose={onClose} />;
+  const presence = useModalPresence(item);
+  if (!presence.value) return null;
+  return (
+    <SubstituteModalBody
+      key={presence.value.id}
+      weekStart={weekStart}
+      item={presence.value}
+      onClose={onClose}
+      open={presence.open}
+      onExited={presence.onExited}
+    />
+  );
 }
 
-function SubstituteModalBody({ weekStart, item, onClose }: { weekStart: ISODate; item: ShoppingItem; onClose: () => void }) {
+function SubstituteModalBody({
+  weekStart,
+  item,
+  onClose,
+  open,
+  onExited,
+}: { weekStart: ISODate; item: ShoppingItem; onClose: () => void } & ModalPresenceProps) {
   const toast = useToast();
   const options = useSubstituteOptions(weekStart, item.id);
   const apply = useApplySubstitute(weekStart);
@@ -60,7 +76,8 @@ function SubstituteModalBody({ weekStart, item, onClose }: { weekStart: ISODate;
 
   return (
     <Modal
-      open
+      open={open}
+      onExited={onExited}
       onClose={onClose}
       title="대체 관리"
       description="선택한 날짜의 레시피에만 적용돼요. 같은 재료를 쓰는 다른 레시피의 필요량은 그대로 유지돼요."

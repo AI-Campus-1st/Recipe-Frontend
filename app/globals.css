@@ -71,6 +71,45 @@
   --app-page-padding-x: 20px;
   --app-header-height: 56px;
   --app-bottom-nav-height: 64px;
+
+  /* Modal bottom sheet — docs/design/components/MODAL.md. Open 250ms ease-out, close 200ms ease-in. */
+  --animate-modal-panel-in: modal-slide-up 250ms ease-out both;
+  --animate-modal-panel-out: modal-slide-down 200ms ease-in both;
+  --animate-modal-scrim-in: modal-fade-in 250ms ease-out both;
+  --animate-modal-scrim-out: modal-fade-out 200ms ease-in both;
+
+  @keyframes modal-slide-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes modal-slide-down {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes modal-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes modal-fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 }
 
 @utility app-frame {

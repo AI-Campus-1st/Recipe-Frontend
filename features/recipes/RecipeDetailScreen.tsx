@@ -88,7 +88,7 @@ function SideDishSection({ recipeId }: { recipeId: string }) {
           ))}
         </ul>
       )}
-      {editing && sides.isSuccess && <SideDishModal recipeId={recipeId} linked={sides.data} onClose={() => setEditing(false)} />}
+      <SideDishModal recipeId={recipeId} linked={editing && sides.isSuccess ? sides.data : null} onClose={() => setEditing(false)} />
     </section>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/Button";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
-import { Modal } from "@/components/Modal";
+import { Modal, useModalPresence } from "@/components/Modal";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { useToast } from "@/components/Toast";
@@ -30,6 +30,7 @@ export function RecipesScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [revisionTargetId, setRevisionTargetId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null);
+  const deletePresence = useModalPresence(deleteTarget);
 
   const recipes = useRecipes(category);
   // Always show the latest data (the list keeps polling while recipes are being collected).
@@ -160,13 +161,14 @@ export function RecipesScreen() {
       <AddRecipeModal open={addOpen} onClose={() => setAddOpen(false)} />
       <RecipeRevisionModal recipe={revisionTarget} onClose={() => setRevisionTargetId(null)} />
       <Modal
-        open={!!deleteTarget}
+        open={deletePresence.open}
+        onExited={deletePresence.onExited}
         onClose={() => setDeleteTarget(null)}
         title="레시피 삭제"
         description={
-          deleteTarget && (
+          deletePresence.value && (
             <>
-              <strong className="text-ink">{recipeTitle(deleteTarget.title)}</strong>을(를) 삭제할까요? 삭제한 레시피는 되돌릴 수
+              <strong className="text-ink">{recipeTitle(deletePresence.value.title)}</strong>을(를) 삭제할까요? 삭제한 레시피는 되돌릴 수
               없어요.
             </>
           )

@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/Button";
 import { Checkbox } from "@/components/Checkbox";
-import { Modal } from "@/components/Modal";
+import { Modal, useModalPresence, type ModalPresenceProps } from "@/components/Modal";
 import { LoadingState } from "@/components/States";
 import { TextInput } from "@/components/TextInput";
 import { useToast } from "@/components/Toast";
@@ -17,16 +17,30 @@ import { filterRecipesByName } from "./search";
 
 interface SideDishModalProps {
   recipeId: string;
-  /** Currently linked side dishes — the initial selection. */
-  linked: RecipeSummary[];
+  /** Currently linked side dishes — the initial selection. `null` while closed. */
+  linked: RecipeSummary[] | null;
   onClose: () => void;
 }
 
 /**
  * `곁들임 레시피 연결`: multi-select saved recipes (search by name), optionally helped by AI candidates.
- * Mount only while open so the selection starts from the current links each time.
+ * The body mounts on open so the selection starts from the current links each time.
  */
 export function SideDishModal({ recipeId, linked, onClose }: SideDishModalProps) {
+  const presence = useModalPresence(linked);
+  if (!presence.value) return null;
+  return (
+    <SideDishModalBody recipeId={recipeId} linked={presence.value} onClose={onClose} open={presence.open} onExited={presence.onExited} />
+  );
+}
+
+function SideDishModalBody({
+  recipeId,
+  linked,
+  onClose,
+  open,
+  onExited,
+}: { recipeId: string; linked: RecipeSummary[]; onClose: () => void } & ModalPresenceProps) {
   const toast = useToast();
   const recipes = useRecipes(null);
   const save = useSaveSideDishes(recipeId);
@@ -82,7 +96,8 @@ export function SideDishModal({ recipeId, linked, onClose }: SideDishModalProps)
 
   return (
     <Modal
-      open
+      open={open}
+      onExited={onExited}
       onClose={onClose}
       title="곁들임 레시피 연결"
       description="함께 먹을 저장 레시피를 선택하세요. 다음 식단 생성부터 반영돼요."
