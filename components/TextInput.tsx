@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 interface FieldProps {
@@ -24,7 +24,7 @@ function FieldLabel({ id, label, required, addon }: { id: string; label: string;
   );
 }
 
-const fieldClass = (error?: string | null) =>
+export const fieldClass = (error?: string | null) =>
   cn(
     "w-full rounded-sm border bg-canvas px-3 text-body-lg text-ink placeholder:text-muted outline-none",
     "focus:border-secondary focus:ring-2 focus:ring-primary-soft disabled:bg-surface-soft disabled:text-muted",
@@ -82,6 +82,41 @@ export function TextArea({ label, required, hint, error, labelAddon, className, 
         className={cn(fieldClass(error), "resize-none py-2")}
         {...rest}
       />
+      {hint && !error && (
+        <p id={hintId} className="mt-1 text-caption text-muted">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} className="mt-1 text-caption text-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+type SelectProps = FieldProps & Omit<SelectHTMLAttributes<HTMLSelectElement>, "required">;
+
+/** Native select with the same label, hint and error layout as `TextInput`. */
+export function Select({ label, required, hint, error, labelAddon, className, id: idProp, children, ...rest }: SelectProps) {
+  const autoId = useId();
+  const id = idProp ?? autoId;
+  const hintId = `${id}-hint`;
+  const errorId = `${id}-error`;
+  return (
+    <div className={className}>
+      <FieldLabel id={id} label={label} required={required} addon={labelAddon} />
+      <select
+        id={id}
+        aria-required={required || undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={cn(hint ? hintId : undefined, error ? errorId : undefined) || undefined}
+        className={cn(fieldClass(error), "min-h-11")}
+        {...rest}
+      >
+        {children}
+      </select>
       {hint && !error && (
         <p id={hintId} className="mt-1 text-caption text-muted">
           {hint}

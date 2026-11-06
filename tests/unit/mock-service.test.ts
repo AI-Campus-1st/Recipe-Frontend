@@ -224,7 +224,7 @@ describe("recipe import (F-01)", () => {
     api.deleteRecipe("r-potato");
     expect(api.listRecipes(null).some((r) => r.id === "r-potato")).toBe(false);
     expect(() => api.getRecipe("r-potato")).toThrowError(/찾을 수 없습니다/);
-    const sourceUrl = createSeed().recipes.find((r) => r.id === "r-potato")!.sourceUrl;
+    const sourceUrl = createSeed().recipes.find((r) => r.id === "r-potato")!.sourceUrl!;
     const { recipe, restored } = api.importRecipe({ url: sourceUrl });
     expect(restored).toBe(true);
     expect(recipe).toMatchObject({ id: "r-potato", status: "saved" });
@@ -285,5 +285,44 @@ describe("side dishes (F-04)", () => {
     expect(candidates.length).toBeLessThanOrEqual(3);
     expect(candidates[0]).toMatchObject({ alreadyLinked: true });
     expect(candidates.every((c) => c.recipe.id !== "r-doenjang")).toBe(true);
+  });
+});
+
+describe("manual recipe input (RECIPE-001)", () => {
+  it("lists units in dimension order", () => {
+    const dimensions = api.listUnits().map((u) => u.dimension);
+    expect(dimensions.indexOf("unmeasured")).toBeGreaterThan(dimensions.lastIndexOf("count"));
+    expect(api.listUnits()).toContainEqual({ code: "tbsp", label: "큰술", dimension: "volume" });
+  });
+
+  it("saves a recipe right away with parsed amounts", () => {
+    const recipe = api.createRecipe({
+      title: " 마늘 소스 ",
+      category: "sauce",
+      cookMinutes: 5,
+      ingredients: [{ name: "다진 마늘", amount: "2큰술" }, { name: "소금", amount: "약간" }, { name: "달걀", amount: "2" }],
+      steps: ["모두 섞는다."],
+    });
+    expect(recipe).toMatchObject({ title: "마늘 소스", status: "saved", sourceUrl: null, steps: ["모두 섞는다."] });
+    expect(recipe.ingredients.map(({ name, quantity, unit }) => ({ name, quantity, unit }))).toEqual([
+      { name: "다진 마늘", quantity: 2, unit: "큰술" },
+      { name: "소금", quantity: null, unit: "약간" },
+      { name: "달걀", quantity: 2, unit: null },
+    ]);
+    expect(recipe.uncertainFields).toEqual(["baseServings"]);
+    expect(api.listRecipes(null)[0].id).toBe(recipe.id);
+  });
+
+  it("rejects a missing title or ingredients with field errors", () => {
+    try {
+      api.createRecipe({ title: " ", ingredients: [] });
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(api.MockHttpError);
+      expect((error as api.MockHttpError).body.fieldErrors).toEqual({
+        title: "레시피명을 입력해 주세요.",
+        ingredients: "재료를 1개 이상 입력해 주세요.",
+      });
+    }
   });
 });

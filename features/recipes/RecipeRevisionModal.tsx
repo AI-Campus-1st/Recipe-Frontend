@@ -204,9 +204,11 @@ function RecipeExtractSummary({ recipe, fieldErrors }: { recipe: Recipe; fieldEr
           </ol>
         </div>
       )}
-      <ExternalLink href={recipe.sourceUrl} className="text-label">
-        원문 열기
-      </ExternalLink>
+      {recipe.sourceUrl && (
+        <ExternalLink href={recipe.sourceUrl} className="text-label">
+          원문 열기
+        </ExternalLink>
+      )}
     </div>
   );
 }

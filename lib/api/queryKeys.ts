@@ -14,4 +14,6 @@ export const queryKeys = {
   shopping: (weekStart: ISODate) => ["shopping", weekStart] as const,
   shoppingAll: ["shopping"] as const,
   substitutes: (weekStart: ISODate, itemId: string) => ["substitutes", weekStart, itemId] as const,
+  /* RECIPE-001 */
+  units: ["units"] as const,
 };

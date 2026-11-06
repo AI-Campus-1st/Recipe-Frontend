@@ -13,12 +13,14 @@ import type {
   MonthSummary,
   Recipe,
   RecipeCategory,
+  RecipeCreateRequest,
   RecipeSummary,
   ShoppingList,
   SideDishRecommendationRequest,
   SideDishRecommendationResponse,
   SubstituteOptions,
   TodayMealResponse,
+  Unit,
   WeeklyMealPlan,
 } from "./contracts";
 
@@ -36,6 +38,8 @@ export const recipesApi = {
     apiRequest<Recipe>(`/recipes/${enc(id)}/revision-requests`, { method: "POST", body: { comment } }),
   confirm: (id: string) => apiRequest<Recipe>(`/recipes/${enc(id)}/confirm`, { method: "POST" }),
   remove: (id: string) => apiRequest<void>(`/recipes/${enc(id)}`, { method: "DELETE" }),
+  /** Manual input (RECIPE-001, §2.8). */
+  create: (body: RecipeCreateRequest) => apiRequest<Recipe>("/recipes", { method: "POST", body }),
 };
 
 export const sideDishesApi = {
@@ -80,4 +84,10 @@ export const shoppingApi = {
       method: "POST",
       body,
     }),
+};
+
+/* ---------- Units (RECIPE-001, §2.10) ---------- */
+
+export const unitsApi = {
+  list: () => apiRequest<Unit[]>("/units"),
 };

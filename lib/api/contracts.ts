@@ -56,7 +56,8 @@ export interface CookingLogSummary {
 
 export interface Recipe {
   id: string;
-  sourceUrl: string;
+  /** `null` for a manually entered recipe without a reference link (§2.8). */
+  sourceUrl: string | null;
   title: string | null;
   imageUrl: string | null;
   status: RecipeStatus;
@@ -197,7 +198,7 @@ export interface CookingRecipeView {
   /** Cooking guidance for applied substitutes, kept apart from the original steps. */
   substituteNotes: string[];
   previousLogs: CookingLogSummary[];
-  sourceUrl: string;
+  sourceUrl: string | null;
   /** This meal's completion log for this recipe (main or side); reviews are saved per recipe. */
   cookingLogId: string | null;
 }
@@ -318,4 +319,39 @@ export interface ApplySubstituteRequest {
   candidateId: string;
   /** Required when the candidate is uncertain. */
   confirmedUncertain?: boolean;
+}
+
+/* ---------- Manual recipe input & units (RECIPE-001, §2.8, §2.10) ---------- */
+
+/** Order of `GET /units`: mass → volume → count → unmeasured, then by label. */
+export type UnitDimension = "mass" | "volume" | "count" | "unmeasured";
+
+export interface Unit {
+  code: string;
+  /** Display name, e.g. "큰술". The server also accepts it as an alias inside `amount`. */
+  label: string;
+  dimension: UnitDimension;
+}
+
+export interface RecipeIngredientInput {
+  /** Existing `RecipeIngredient.id` (§2.9 updates only). */
+  id?: string;
+  name: string;
+  /** Raw amount text such as "2큰술" or "약간"; the server parses it (`UNIT_CONVERSION.md`). */
+  amount?: string;
+}
+
+/** `POST /recipes`: saved right away (`status=saved`); 422 `fieldErrors.title | ingredients | sourceUrl | imageUrl`. */
+export interface RecipeCreateRequest {
+  title: string;
+  category?: RecipeCategory;
+  /** Integer 1–100. */
+  baseServings?: number;
+  /** Integer 0–1440. */
+  cookMinutes?: number;
+  /** At least one. */
+  ingredients: RecipeIngredientInput[];
+  steps?: string[];
+  sourceUrl?: string;
+  imageUrl?: string;
 }

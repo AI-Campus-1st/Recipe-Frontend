@@ -25,7 +25,7 @@ interface RecipeViewProps {
   steps: string[];
   /** Cooking guidance for applied substitutes, kept apart from the original steps. */
   substituteNotes?: string[];
-  sourceUrl?: string;
+  sourceUrl?: string | null;
   logs: CookingLogSummary[];
   /** Caption above the ingredient list, e.g. "2인분 기준 필요량". */
   ingredientsCaption: string;
