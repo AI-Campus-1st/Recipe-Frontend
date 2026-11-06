@@ -4,7 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { ExternalLink } from "@/components/Link";
-import { Modal } from "@/components/Modal";
+import { Modal, useModalPresence } from "@/components/Modal";
 import { TextArea } from "@/components/TextInput";
 import { useToast } from "@/components/Toast";
 import { ApiError, errorMessage } from "@/lib/api/client";
@@ -22,7 +22,10 @@ interface RecipeRevisionModalProps {
  * `확인 필요`: review extracted data, then `수정사항 반영 요청` (optional comment) or `확인 처리`.
  * `수집 실패`: `수정 요청` with the user's comment.
  */
-export function RecipeRevisionModal({ recipe, onClose }: RecipeRevisionModalProps) {
+export function RecipeRevisionModal({ recipe: target, onClose }: RecipeRevisionModalProps) {
+  // Keep showing the recipe while the modal slides down after `recipe` is cleared.
+  const presence = useModalPresence(target);
+  const recipe = presence.value;
   const toast = useToast();
   const requestRevision = useRequestRevision();
   const confirmRecipe = useConfirmRecipe();
@@ -82,7 +85,8 @@ export function RecipeRevisionModal({ recipe, onClose }: RecipeRevisionModalProp
 
   return (
     <Modal
-      open={!!recipe}
+      open={presence.open}
+      onExited={presence.onExited}
       onClose={close}
       title={isFailed ? "수정 요청" : "레시피 확인"}
       description={isFailed ? "수집에 실패한 레시피에 대해 요청사항을 남기면 다시 수집해요." : "수집한 정보를 확인한 뒤 저장하거나 수정을 요청하세요."}

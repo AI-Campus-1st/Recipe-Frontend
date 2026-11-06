@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/Button";
-import { Modal } from "@/components/Modal";
+import { Modal, useModalPresence, type ModalPresenceProps } from "@/components/Modal";
 import { RecipeCard } from "@/components/RecipeCard";
 import { TextArea } from "@/components/TextInput";
 import { useToast } from "@/components/Toast";
@@ -18,11 +18,20 @@ interface ChangeMealModalProps {
 }
 
 export function ChangeMealModal({ entry, onClose }: ChangeMealModalProps) {
-  if (!entry) return null;
-  return <ChangeMealModalBody key={entry.id} entry={entry} onClose={onClose} />;
+  const presence = useModalPresence(entry);
+  if (!presence.value) return null;
+  return (
+    <ChangeMealModalBody
+      key={presence.value.id}
+      entry={presence.value}
+      onClose={onClose}
+      open={presence.open}
+      onExited={presence.onExited}
+    />
+  );
 }
 
-function ChangeMealModalBody({ entry, onClose }: { entry: MealPlanEntry; onClose: () => void }) {
+function ChangeMealModalBody({ entry, onClose, open, onExited }: { entry: MealPlanEntry; onClose: () => void } & ModalPresenceProps) {
   const toast = useToast();
   const regenerate = useRegenerateMeal();
   const [comment, setComment] = useState("");
@@ -42,7 +51,8 @@ function ChangeMealModalBody({ entry, onClose }: { entry: MealPlanEntry; onClose
 
   return (
     <Modal
-      open
+      open={open}
+      onExited={onExited}
       onClose={onClose}
       title="식단 변경"
       description={`${formatDateWithWeekday(entry.date)} 식단만 변경하고 다른 날짜는 그대로 유지해요.`}

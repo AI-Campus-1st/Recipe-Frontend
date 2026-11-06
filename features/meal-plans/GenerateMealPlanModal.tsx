@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/Button";
-import { Modal } from "@/components/Modal";
+import { Modal, useModalPresence, type ModalPresenceProps } from "@/components/Modal";
 import { TextArea } from "@/components/TextInput";
 import { useToast } from "@/components/Toast";
 import { Stepper, Toggle } from "@/components/ToggleStepper";
@@ -55,12 +55,20 @@ export function summarizeGeneration({ results }: GenerateMealPlanResponse) {
 }
 
 export function GenerateMealPlanModal(props: GenerateMealPlanModalProps) {
-  // Remount on open so settings start from defaults each time.
-  if (!props.open) return null;
-  return <GenerateMealPlanModalBody {...props} />;
+  // Remount on open so settings start from defaults each time; stay mounted while the close animation runs.
+  const presence = useModalPresence(props.open);
+  if (!presence.value) return null;
+  return <GenerateMealPlanModalBody {...props} open={presence.open} onExited={presence.onExited} />;
 }
 
-function GenerateMealPlanModalBody({ onClose, weekStart, plannedDates, initialDates }: GenerateMealPlanModalProps) {
+function GenerateMealPlanModalBody({
+  open,
+  onExited,
+  onClose,
+  weekStart,
+  plannedDates,
+  initialDates,
+}: GenerateMealPlanModalProps & ModalPresenceProps) {
   const toast = useToast();
   const generate = useGenerateMealPlan();
   const [settings, setSettings] = useState(() => initialSettings(weekStart, plannedDates, initialDates));
@@ -93,7 +101,8 @@ function GenerateMealPlanModalBody({ onClose, weekStart, plannedDates, initialDa
 
   return (
     <Modal
-      open
+      open={open}
+      onExited={onExited}
       onClose={onClose}
       title="주간 식단 생성"
       description="생성할 날짜와 각 날짜의 인분을 설정하세요. 저장한 레시피 중에서만 추천해요."
