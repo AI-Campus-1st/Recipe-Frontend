@@ -326,7 +326,7 @@ function IngredientRows({ rows, units, unitByCode, unitsState, onRetryUnits, err
                     onChange(row.key, isUnmeasured(next) ? { unitCode: event.target.value, quantity: "" } : { unitCode: event.target.value });
                   }}
                 >
-                  <option value="">{unitsState === "loading" ? "불러오는 중" : "단위 없음"}</option>
+                  <option value="">{unitsState === "loading" ? "…" : "단위"}</option>
                   {units.map((u) => (
                     <option key={u.code} value={u.code}>
                       {u.label}
