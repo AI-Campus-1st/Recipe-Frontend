@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { recipesApi, sideDishesApi } from "@/lib/api/endpoints";
+import { recipesApi, sideDishesApi, unitsApi } from "@/lib/api/endpoints";
 import { queryKeys } from "@/lib/api/queryKeys";
-import type { ImportRecipeRequest, RecipeCategory } from "@/lib/api/contracts";
+import type { ImportRecipeRequest, RecipeCategory, RecipeCreateRequest } from "@/lib/api/contracts";
 
 const POLL_MS = 1500;
 
@@ -78,4 +78,16 @@ export function useSaveSideDishes(recipeId: string) {
 /** AI candidates are suggestions only; nothing is linked until the user saves. */
 export function useRecommendSideDishes(recipeId: string) {
   return useMutation({ mutationFn: () => sideDishesApi.recommend(recipeId) });
+}
+
+/* ---------- Manual recipe input & units (RECIPE-001) ---------- */
+
+export function useCreateRecipe() {
+  const invalidate = useInvalidateRecipes();
+  return useMutation({ mutationFn: (body: RecipeCreateRequest) => recipesApi.create(body), onSuccess: invalidate });
+}
+
+/** Units change only from the admin page, so the list is cached for the session. */
+export function useUnits() {
+  return useQuery({ queryKey: queryKeys.units, queryFn: () => unitsApi.list(), staleTime: Infinity, gcTime: Infinity });
 }
